@@ -1,4 +1,5 @@
 const St = imports.gi.St;
+const Clutter = imports.gi.Clutter;
 const Main = imports.ui.main;
 const GLib = imports.gi.GLib;
 const Lang = imports.lang;
@@ -42,20 +43,21 @@ const TlButton = new Lang.Class({
   },
 
   _stop: function() {
-    let text = this._execute('stop');
+    let text = this._execute(['stop']);
     this._notify(text);
     this._updateText();
   },
 
   _continue: function() {
-    let text = this._execute('continue');
+    let text = this._execute(['continue']);
     this._notify(text);
     this._updateText();
   },
 
-  _execute: function(command) {
+  _execute: function(args) {
+    args.unshift("/home/rowlands/bin/tl");
     let out = {};
-    let result = GLib.spawn_sync(null, ["/home/rowlands/bin/tl", command], null, GLib.SpawnFlags.SEARCH_PATH, null, null);
+    let result = GLib.spawn_sync(null, args, null, GLib.SpawnFlags.SEARCH_PATH, null, null);
     let [status, text, error] = result;
     if (text.constructor.name !== 'String') {
       text = String.fromCharCode.apply(String, text);
@@ -64,7 +66,7 @@ const TlButton = new Lang.Class({
   },
 
   _updateText: function() {
-    this._label.text = Lang.bind(this, this._execute)('bitbar');;
+    this._label.text = Lang.bind(this, this._execute)(['bitbar']);
     this._clearTimeout();
     this._timeout = Mainloop.timeout_add_seconds(15, Lang.bind(this, this._updateText));
   },
@@ -88,6 +90,33 @@ const TlButton = new Lang.Class({
 
     this.menu.addMenuItem(new TlCommand('media-playback-stop-symbolic', 'Stop', Lang.bind(this, this._stop)));
     this.menu.addMenuItem(new TlCommand('media-playback-start-symbolic', 'Continue', Lang.bind(this, this._continue)));
+
+    let newTask = new St.Entry({
+      name: 'newTaskEntry',
+      hint_text: _('start #...'),
+      track_hover: true,
+      can_focus: true
+    });
+
+    let entryNewTask = newTask.clutter_text;
+
+    entryNewTask.connect('key-press-event', Lang.bind(this, function(o, e) {
+      let symbol = e.get_key_symbol();
+      if ((symbol == Clutter.Return) || (symbol == Clutter.KP_Enter)) {
+        this.menu.close();
+        if (o.get_text() === '') {
+          return;
+        }
+        this._notify(this._execute(['stop']));
+        this._notify(this._execute(['start', o.get_text()]));
+        o.set_text(null);
+        this._updateText();
+      }
+    }));
+    let newTaskSection = new PopupMenu.PopupMenuSection();
+    newTaskSection.actor.add_actor(newTask);
+    newTaskSection.actor.add_style_class_name('tl__start');
+    this.menu.addMenuItem(newTaskSection);
     this._updateText();
     Main.panel.menuManager.addMenu(this.menu);
     this._timeout = Mainloop.timeout_add_seconds(15, Lang.bind(this, this._updateText));
