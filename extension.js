@@ -107,7 +107,7 @@ const TlButton = new Lang.Class({
         if (o.get_text() === '') {
           return;
         }
-        this._notify(this._execute(['stop']));
+        this._execute(['stop']);
         this._notify(this._execute(['start', o.get_text()]));
         o.set_text(null);
         this._updateText();
