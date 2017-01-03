@@ -1,9 +1,6 @@
 const St = imports.gi.St;
 const Main = imports.ui.main;
-const Tweener = imports.ui.tweener;
-const Util = imports.misc.util;
 const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
 const Lang = imports.lang;
 const Mainloop = imports.mainloop;
 const PanelMenu = imports.ui.panelMenu;
@@ -11,6 +8,21 @@ const PopupMenu = imports.ui.popupMenu;
 const MessageTray = imports.ui.messageTray;
 
 let button;
+
+const TlCommand = new Lang.Class({
+  Name: 'TlCommand',
+  Extends: PopupMenu.PopupBaseMenuItem,
+  _init: function(icon, text, callback, params) {
+    this.parent(params);
+    this.actor.add_child(new St.Icon({
+      icon_name: icon,
+      icon_size: '22'
+    }));
+    this.label = new St.Label({ text: text });
+    this.actor.add_child(this.label);
+    this.connect('activate', callback);
+  }
+});
 
 const TlButton = new Lang.Class({
   Name: 'TlButton',
@@ -52,33 +64,30 @@ const TlButton = new Lang.Class({
   },
 
   _updateText: function() {
-    let text = Lang.bind(this, this._execute)('bitbar');
-    this._label.text = text;
+    this._label.text = Lang.bind(this, this._execute)('bitbar');;
     this._clearTimeout();
     this._timeout = Mainloop.timeout_add_seconds(15, Lang.bind(this, this._updateText));
   },
 
   _stopButton: null,
   _continueButton: null,
-  _buttonBox: null,
   _buttonMenu: null,
   menu: null,
 
   _init: function() {
     this.parent(0.0);
     this._label = new St.Label({text: "..."});
-    this.actor.add_child(this._label);
+    let icon = new St.Icon({
+      icon_name: 'document-open-recent-symbolic',
+      icon_size: '22'
+    });
+    let topBox = new St.BoxLayout();
+    topBox.add_actor(icon);
+    topBox.add_actor(this._label);
+    this.actor.add_child(topBox);
 
-    this._stopButton = new PopupMenu.PopupMenuItem('Stop');
-    this._stopButton.connect('activate', Lang.bind(this, this._stop));
-    let stopIcon = new St.Icon({ icon_name: 'media-playback-stop-symbolic', icon_size: 22});
-    this._stopButton.actor.add_actor(stopIcon);
-    this.menu.addMenuItem(this._stopButton);
-    this._continueButton = new PopupMenu.PopupMenuItem('Continue');
-    this._continueButton.connect('activate', Lang.bind(this, this._continue));
-    let continueIcon = new St.Icon({ icon_name: 'media-playback-start-symbolic', icon_size: 22});
-    this._continueButton.actor.add_actor(continueIcon);
-    this.menu.addMenuItem(this._continueButton);
+    this.menu.addMenuItem(new TlCommand('media-playback-stop-symbolic', 'Stop', Lang.bind(this, this._stop)));
+    this.menu.addMenuItem(new TlCommand('media-playback-start-symbolic', 'Continue', Lang.bind(this, this._continue)));
     this._updateText();
     Main.panel.menuManager.addMenu(this.menu);
     this._timeout = Mainloop.timeout_add_seconds(15, Lang.bind(this, this._updateText));
