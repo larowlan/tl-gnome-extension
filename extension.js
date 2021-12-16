@@ -55,9 +55,9 @@ const TlButton = new Lang.Class({
   },
 
   _execute: function(args) {
-    args.unshift("/home/rowlands/bin/tl");
+    args.unshift("tl");
     let out = {};
-    let result = GLib.spawn_sync(null, args, null, GLib.SpawnFlags.SEARCH_PATH, null, null);
+    let result = GLib.spawn_sync(null, args, null, GLib.SpawnFlags.SEARCH_PATH, null);
     let [status, text, error] = result;
     if (text.constructor.name !== 'String') {
       text = String.fromCharCode.apply(String, text);
