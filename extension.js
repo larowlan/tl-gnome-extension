@@ -34,7 +34,7 @@ const TSummary = GObject.registerClass(
   {
     GTypeName: 'TlSummary'
   }, class TlSummary extends ModalDialog.ModalDialog {
-    _init(content) {
+    _init(titleTxt, content) {
         super._init({ styleClass: 'tl__summary',
                 destroyOnClose: true });
     const report = new St.Label({style_class: 'tl__summary-report', text: content})
@@ -52,7 +52,7 @@ const TSummary = GObject.registerClass(
   });
   const title = new St.Label({
       style_class: 'nm-dialog-header',
-      text: "Summary"
+      text: titleTxt
   });
 
   titleBox.add(title);
@@ -145,7 +145,6 @@ const TlButton = GObject.registerClass(
 
     this.menu.addMenuItem(new TlCommand('media-playback-stop-symbolic', 'Stop', this._stop.bind(this)));
     this.menu.addMenuItem(new TlCommand('media-playback-start-symbolic', 'Continue', this._continue.bind(this)));
-
     let newTask = new St.Entry({
       name: 'newTaskEntry',
       hint_text: _('start #...'),
@@ -176,10 +175,16 @@ const TlButton = GObject.registerClass(
     Main.panel.menuManager.addMenu(this.menu);
     this._timeout = Mainloop.timeout_add_seconds(15, this._updateText.bind(this));
 
-    this.menu.addMenuItem(new TlCommand('x-office-calendar-symbolic', 'Summary', (() => {
-      const summary = new TSummary(this._execute(['bill', 'month']));
+    this.menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+    this.menu.addMenuItem(new TlCommand('x-office-calendar-symbolic', 'Review', (() => {
+      const summary = new TSummary('Unsent entries', this._execute(['review']));
 		  summary.open();
     }).bind(this)));
+    this.menu.addMenuItem(new TlCommand('x-office-calendar-symbolic', 'Summary', (() => {
+      const summary = new TSummary('Monthly summary', this._execute(['bill', 'month']));
+		  summary.open();
+    }).bind(this)));
+
   }
 
   destroy() {
