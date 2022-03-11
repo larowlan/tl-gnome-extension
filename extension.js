@@ -4,7 +4,6 @@ const St = imports.gi.St;
 const Clutter = imports.gi.Clutter;
 const Main = imports.ui.main;
 const GLib = imports.gi.GLib;
-const Lang = imports.lang;
 const GObject = imports.gi.GObject;
 const Mainloop = imports.mainloop;
 const PanelMenu = imports.ui.panelMenu;
@@ -22,7 +21,7 @@ class TlCommand extends PopupMenu.PopupBaseMenuItem {
     super._init(params);
     this.actor.add_child(new St.Icon({
       icon_name: icon,
-      icon_size: '22'
+      icon_size: '16'
     }));
     this.label = new St.Label({ text: text });
     this.actor.add_child(this.label);
@@ -55,7 +54,7 @@ const TlButton = GObject.registerClass(
     this._updateText();
   }
 
-  _execute (args) {
+  _execute (args, callback) {
     args.unshift("tl");
     let out = {};
     let result = GLib.spawn_sync(null, args, null, GLib.SpawnFlags.SEARCH_PATH, null);
@@ -67,9 +66,9 @@ const TlButton = GObject.registerClass(
   }
 
   _updateText () {
-    this._label.text = Lang.bind(this, this._execute)(['bitbar']);
+    this._label.text = this._execute.bind(this)(['bitbar']);
     this._clearTimeout();
-    this._timeout = Mainloop.timeout_add_seconds(15, Lang.bind(this, this._updateText));
+    this._timeout = Mainloop.timeout_add_seconds(15, this._updateText.bind(this));
   }
 
   _init() {
@@ -84,8 +83,8 @@ const TlButton = GObject.registerClass(
     topBox.add_actor(this._label);
     this.actor.add_child(topBox);
 
-    this.menu.addMenuItem(new TlCommand('media-playback-stop-symbolic', 'Stop', Lang.bind(this, this._stop)));
-    this.menu.addMenuItem(new TlCommand('media-playback-start-symbolic', 'Continue', Lang.bind(this, this._continue)));
+    this.menu.addMenuItem(new TlCommand('media-playback-stop-symbolic', 'Stop', this._stop.bind(this)));
+    this.menu.addMenuItem(new TlCommand('media-playback-start-symbolic', 'Continue', this._continue.bind(this)));
 
     let newTask = new St.Entry({
       name: 'newTaskEntry',
@@ -96,7 +95,7 @@ const TlButton = GObject.registerClass(
 
     let entryNewTask = newTask.clutter_text;
 
-    entryNewTask.connect('key-press-event', Lang.bind(this, function(o, e) {
+    entryNewTask.connect('key-press-event', ((o, e) => {
       let symbol = e.get_key_symbol();
       if ((symbol == Clutter.KEY_Return) || (symbol == Clutter.KEY_KP_Enter)) {
         this.menu.close();
@@ -108,14 +107,16 @@ const TlButton = GObject.registerClass(
         o.set_text(null);
         this._updateText();
       }
-    }));
+    }).bind(this));
     let newTaskSection = new PopupMenu.PopupMenuSection();
     newTaskSection.actor.add_actor(newTask);
     newTaskSection.actor.add_style_class_name('tl__start');
     this.menu.addMenuItem(newTaskSection);
     this._updateText();
     Main.panel.menuManager.addMenu(this.menu);
-    this._timeout = Mainloop.timeout_add_seconds(15, Lang.bind(this, this._updateText));
+    this._timeout = Mainloop.timeout_add_seconds(15, this._updateText.bind(this));
+
+    this.menu.addMenuItem(new TlCommand('media-playback-start-symbolic', 'Continue', this._continue.bind(this)));
   }
 
   destroy() {
