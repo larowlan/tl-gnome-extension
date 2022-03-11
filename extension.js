@@ -3,11 +3,13 @@
 const St = imports.gi.St;
 const Clutter = imports.gi.Clutter;
 const Main = imports.ui.main;
+const Gtk = imports.gi.Gtk;
 const GLib = imports.gi.GLib;
 const GObject = imports.gi.GObject;
 const Mainloop = imports.mainloop;
 const PanelMenu = imports.ui.panelMenu;
 const PopupMenu = imports.ui.popupMenu;
+const ModalDialog = imports.ui.modalDialog;
 const MessageTray = imports.ui.messageTray;
 
 let button;
@@ -27,6 +29,64 @@ class TlCommand extends PopupMenu.PopupBaseMenuItem {
     this.actor.add_child(this.label);
     this.connect('activate', callback);
   }
+});
+const TSummary = GObject.registerClass(
+  {
+    GTypeName: 'TlSummary'
+  }, class TlSummary extends ModalDialog.ModalDialog {
+    _init(content) {
+        super._init({ styleClass: 'tl__summary',
+                destroyOnClose: true });
+    const report = new St.Label({style_class: 'tl__summary-report', text: content})
+    let headline = new St.BoxLayout({
+      style_class: 'nm-dialog-header-hbox'
+  });
+
+  const icon = new St.Icon({
+      icon_name: 'x-office-calendar-symbolic',
+      icon_size: 16,
+  });
+
+  const titleBox = new St.BoxLayout({
+      vertical: true
+  });
+  const title = new St.Label({
+      style_class: 'nm-dialog-header',
+      text: "Summary"
+  });
+
+  titleBox.add(title);
+
+  headline.add(icon);
+  headline.add(titleBox);
+
+  this.contentLayout.style_class = 'nm-dialog-content';
+  this.contentLayout.add(headline);
+
+  // Create ScrollView and ItemBox
+  const stack = new St.Widget({
+      layout_manager: new Clutter.BinLayout()
+  });
+
+  const itemBox = new St.BoxLayout({
+      vertical: true
+  });
+  const scrollView = new St.ScrollView({
+      style_class: 'nm-dialog-scroll-view'
+  });
+  scrollView.set_x_expand(true);
+  scrollView.set_y_expand(true);
+  scrollView.set_policy(Gtk.PolicyType.AUTOMATIC,
+      Gtk.PolicyType.AUTOMATIC);
+  scrollView.add_actor(itemBox);
+  stack.add_child(scrollView);
+  itemBox.add_child(report);
+
+  this.contentLayout.add_child(stack);
+                this.setButtons([{ action: this.close.bind(this),
+                           label: _("Close"),
+                           key: Clutter.Escape }]);
+    }
 });
 
 const TlButton = GObject.registerClass(
@@ -116,7 +176,10 @@ const TlButton = GObject.registerClass(
     Main.panel.menuManager.addMenu(this.menu);
     this._timeout = Mainloop.timeout_add_seconds(15, this._updateText.bind(this));
 
-    this.menu.addMenuItem(new TlCommand('media-playback-start-symbolic', 'Continue', this._continue.bind(this)));
+    this.menu.addMenuItem(new TlCommand('x-office-calendar-symbolic', 'Summary', (() => {
+      const summary = new TSummary(this._execute(['bill', 'month']));
+		  summary.open();
+    }).bind(this)));
   }
 
   destroy() {

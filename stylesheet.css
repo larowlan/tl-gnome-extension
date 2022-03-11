@@ -4,3 +4,10 @@
 .tl__tally {
     padding-top: 7px;
 }
+.tl__summary-label {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+.tl__summary-report {
+    font-family: monospace;
+}
