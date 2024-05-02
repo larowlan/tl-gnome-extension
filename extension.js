@@ -1,16 +1,18 @@
 'use strict';
 
-const St = imports.gi.St;
-const Clutter = imports.gi.Clutter;
-const Main = imports.ui.main;
-const Gtk = imports.gi.Gtk;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Mainloop = imports.mainloop;
-const PanelMenu = imports.ui.panelMenu;
-const PopupMenu = imports.ui.popupMenu;
-const ModalDialog = imports.ui.modalDialog;
-const MessageTray = imports.ui.messageTray;
+import St from 'gi://St';
+import Clutter from 'gi://Clutter';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
+import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import Gtk from 'gi://Gtk';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+
+const Mainloop = imports.mainloop
 
 let button;
 
@@ -35,12 +37,11 @@ const TSummary = GObject.registerClass(
     GTypeName: 'TlSummary'
   }, class TlSummary extends ModalDialog.ModalDialog {
     _init(titleTxt, content) {
-        super._init({ styleClass: 'tl__summary',
-                destroyOnClose: true });
+    super._init({ styleClass: 'tl__summary'});
     const report = new St.Label({style_class: 'tl__summary-report', text: content})
     let headline = new St.BoxLayout({
       style_class: 'nm-dialog-header-hbox'
-  });
+    });
 
   const icon = new St.Icon({
       icon_name: 'x-office-calendar-symbolic',
@@ -55,13 +56,13 @@ const TSummary = GObject.registerClass(
       text: titleTxt
   });
 
-  titleBox.add(title);
+  titleBox.add_child(title);
 
-  headline.add(icon);
-  headline.add(titleBox);
+  headline.add_child(icon);
+  headline.add_child(titleBox);
 
   this.contentLayout.style_class = 'nm-dialog-content';
-  this.contentLayout.add(headline);
+  this.contentLayout.add_child(headline);
 
   // Create ScrollView and ItemBox
   const stack = new St.Widget({
@@ -78,7 +79,7 @@ const TSummary = GObject.registerClass(
   scrollView.set_y_expand(true);
   scrollView.set_policy(Gtk.PolicyType.AUTOMATIC,
       Gtk.PolicyType.AUTOMATIC);
-  scrollView.add_actor(itemBox);
+  scrollView.add_child(itemBox);
   stack.add_child(scrollView);
   itemBox.add_child(report);
 
@@ -95,11 +96,10 @@ const TlButton = GObject.registerClass(
   },class TlButton extends PanelMenu.Button {
 
   _notify (text) {
-    const source = new MessageTray.Source('tl', 'document-open-recent-symbolic');
+    const source = new MessageTray.Source({title:'tl', iconName:'document-open-recent-symbolic'});
     Main.messageTray.add(source);
-    const notification = new MessageTray.Notification(source, text, '');
-    notification.setTransient(true);
-    source.showNotification(notification);
+    const notification = new MessageTray.Notification({source: source, title: text, isTransient: true});
+    source.addNotification(notification);
   }
 
   _stop () {
@@ -139,8 +139,8 @@ const TlButton = GObject.registerClass(
       icon_size: '16'
     });
     let topBox = new St.BoxLayout();
-    topBox.add_actor(icon);
-    topBox.add_actor(this._label);
+    topBox.add_child(icon);
+    topBox.add_child(this._label);
     this.actor.add_child(topBox);
 
     this.menu.addMenuItem(new TlCommand('media-playback-stop-symbolic', 'Stop', this._stop.bind(this)));
@@ -149,7 +149,9 @@ const TlButton = GObject.registerClass(
       name: 'newTaskEntry',
       hint_text: _('start #...'),
       track_hover: true,
-      can_focus: true
+      can_focus: true,
+      x_expand: true,
+      y_expand: true,
     });
 
     let entryNewTask = newTask.clutter_text;
@@ -167,9 +169,13 @@ const TlButton = GObject.registerClass(
         this._updateText();
       }
     }).bind(this));
-    let newTaskSection = new PopupMenu.PopupMenuSection();
-    newTaskSection.actor.add_actor(newTask);
-    newTaskSection.actor.add_style_class_name('tl__start');
+    let newTaskSection = new PopupMenu.PopupMenuSection({style_class_name: 'tl__start'});
+    const entryBox = new St.BoxLayout({
+      vertical: false,
+    });
+
+    newTaskSection.actor.add_child(entryBox);
+    entryBox.add_child(newTask)
     this.menu.addMenuItem(newTaskSection);
     this._updateText();
     Main.panel.menuManager.addMenu(this.menu);
@@ -204,12 +210,15 @@ function init() {
   // Nil op.
 }
 
-function enable() {
-  button = new TlButton();
-  Main.panel.addToStatusArea('tl', button);
+export default class TlExtension {
+    enable() {
+      button = new TlButton();
+      Main.panel.addToStatusArea('tl', button);
+    }
+
+    disable() {
+      button.destroy();
+      button = null;
+    }
 }
 
-function disable() {
-  button.destroy();
-  button = null;
-}
